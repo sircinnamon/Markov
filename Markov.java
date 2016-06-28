@@ -5,6 +5,10 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.io.FileOutputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
+import java.io.IOException;
 public class Markov
 {
 	//A bi-gram prefix engine
@@ -13,18 +17,63 @@ public class Markov
 	public static final boolean NEWLINE_BREAK = true;
 	public static void main(String[] args)
 	{
-		//Java Markov -r <inputfilename>  : read file and spit a single generated block out
-		//Java Markov -rs <inputfilename> <outputfilename> : read file and save the chain to a file
-		//Java Markov -l <inputfilename> : load saved chain and spit out a block (THIS IS DEFAULT)
-		//Java Markov -[r,l] <inputfilename> <num> : print out num blocks
+		int mode = 0;
+		String filename = "";
+		//0:Java Markov -l <inputfilename> : load saved chain and spit out a block (THIS IS DEFAULT)
+		//1:Java Markov -r <inputfilename>  : read file and spit a single generated block out
+		//2:Java Markov -rs <inputfilename> <outputfilename> : read file and save the chain to a file
+		//3/4:Java Markov -[l,r] <inputfilename> <num> : print out num blocks
 		if(args.length == 0)
 		{
-			System.out.println("Not enough arguments.")
+			System.out.println("Not enough arguments.");
+			System.exit(0);
 		}
-		String filename = args[0];
-		HashMap<String, MarkovLink> chain = readFile(filename);
-		//System.out.println(printChain(chain));
-		System.out.println(generateText(chain));
+		else if(args[0].startsWith("-"))
+		{
+			if(args[0].equals("-l") && args.length == 2){mode = 0; filename = args[1];}
+			else if(args[0].equals("-r") && args.length == 2){mode = 1; filename = args[1];}
+			else if(args[0].equals("-rs") && args.length == 3){mode = 2; filename = args[1];}
+			else if(args[0].equals("-l") && args.length == 3){mode = 3; filename = args[1];}
+			else if(args[0].equals("-r") && args.length == 3){mode = 4; filename = args[1];}
+		}
+		else if(args.length == 1)
+		{
+			filename = args[0];
+		}
+		else
+		{
+			System.out.println("Bad arguments.");
+			System.exit(0);
+		}
+
+		if(mode == 0 || mode == 3)
+		{
+			HashMap<String, MarkovLink> chain = loadChain(filename);
+			if(mode == 0){System.out.println(generateText(chain));}
+			else if(mode == 3)
+			{
+				int counter = Integer.parseInt(args[2]);
+				for(int i = 0; i < counter; i++)
+				{
+					System.out.println(generateText(chain));
+				}
+			}
+		}
+		else if(mode == 1 || mode == 2 || mode == 4)
+		{
+			HashMap<String, MarkovLink> chain = readFile(filename);
+			//System.out.println(printChain(chain));
+			if(mode == 1){System.out.println(generateText(chain));}
+			else if(mode == 2){saveChain(chain, args[2]);}
+			else if(mode == 4)
+			{
+				int counter = Integer.parseInt(args[2]);
+				for(int i = 0; i < counter; i++)
+				{
+					System.out.println(generateText(chain));
+				}
+			}
+		}
 	}
 
 	public static HashMap<String, MarkovLink> readFile(String filename)
@@ -139,5 +188,47 @@ public class Markov
 			out = out + l.toString() + "\n";
 		}
 		return out;
+	}
+
+	public static void saveChain(HashMap<String, MarkovLink> chain, String filename)
+	{
+		try
+		{
+			FileOutputStream fout = new FileOutputStream(filename);
+			ObjectOutputStream oout = new ObjectOutputStream(fout);
+			oout.writeObject(chain);
+			oout.close();
+		}
+		catch(IOException e)
+		{
+			System.out.println(e);
+			e.printStackTrace();
+		}
+	}
+
+	public static HashMap<String, MarkovLink> loadChain(String filename)
+	{
+		@SuppressWarnings(value = "unchecked")
+		HashMap<String, MarkovLink> chain;
+		try
+		{
+			FileInputStream fin = new FileInputStream(filename);
+			ObjectInputStream oin = new ObjectInputStream(fin);
+			chain = (HashMap<String, MarkovLink>) oin.readObject();
+			oin.close();
+			return chain;
+		}
+		catch(IOException e)
+		{
+			System.out.println(e);
+			e.printStackTrace();
+		}
+		catch(ClassNotFoundException e)
+		{
+			System.out.println(e);
+			e.printStackTrace();
+		}
+		chain = new HashMap<String, MarkovLink>();
+		return chain;
 	}
 }

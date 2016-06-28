@@ -1,5 +1,5 @@
 import java.util.ArrayList;
-public class MarkovLink
+public class MarkovLink implements java.io.Serializable
 {
 	//A single link in a markov chain
 	String prefix1 = "";
