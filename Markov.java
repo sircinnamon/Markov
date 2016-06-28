@@ -10,8 +10,17 @@ public class Markov
 	//A bi-gram prefix engine
 	//takes in a filename
 	//outputs a markov chain based on it
+	public static final boolean NEWLINE_BREAK = true;
 	public static void main(String[] args)
 	{
+		//Java Markov -r <inputfilename>  : read file and spit a single generated block out
+		//Java Markov -rs <inputfilename> <outputfilename> : read file and save the chain to a file
+		//Java Markov -l <inputfilename> : load saved chain and spit out a block (THIS IS DEFAULT)
+		//Java Markov -[r,l] <inputfilename> <num> : print out num blocks
+		if(args.length == 0)
+		{
+			System.out.println("Not enough arguments.")
+		}
 		String filename = args[0];
 		HashMap<String, MarkovLink> chain = readFile(filename);
 		//System.out.println(printChain(chain));
@@ -33,6 +42,7 @@ public class Markov
 			while((line = br.readLine())!=null)
 			{
 				words = line.split("\\s+");
+				//System.out.println(line);
 				for(int i = 0; i < words.length; i++)
 				{
 					queue.add(words[i]);
@@ -47,6 +57,27 @@ public class Markov
 						link.addSuffix(queue.get(2));
 						chain.put(key, link);
 					}
+					if(NEWLINE_BREAK)
+					{
+						//Allow this word to start lines
+						if(i == 0){chain.get(" ").addSuffix(queue.get(2));}
+						else if(i == 1)
+						{
+							if(chain.containsKey(" "+queue.get(1))){chain.get(" "+queue.get(1)).addSuffix(queue.get(2));}
+							else
+							{
+								MarkovLink link = new MarkovLink("", queue.get(1));
+								link.addSuffix(queue.get(2));
+								chain.put(" "+queue.get(1), link);
+							}
+						}
+					}
+				}
+				if(NEWLINE_BREAK)
+				{
+					MarkovLink link = new MarkovLink(queue.get(1), queue.get(2));
+					link.addSuffix("");
+					chain.put(queue.get(1)+" "+queue.get(2), link);
 				}
 			}
 			queue.add("");
@@ -69,7 +100,8 @@ public class Markov
 		queue.add("");
 		queue.add("");
 		String output = "";
-		queue.add(chain.get(" ").getChoiceArray()[0]);
+		queue.add(makeChoice(chain.get(" ").getChoiceArray()));
+		//System.out.println(queue.get(2));
 		while(!queue.get(2).equals(""))
 		{
 			if(output.equals(""))
